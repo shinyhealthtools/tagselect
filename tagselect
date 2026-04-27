@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TagSelect — Random Sampler</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --surface2: #f0efea;
+  --border: #e2e0d8;
+  --border2: #ccc9bc;
+  --text: #1a1916;
+  --text2: #6b6860;
+  --text3: #9c9a94;
+  --accent: #2d5be3;
+  --accent-bg: #eef1fc;
+  --accent-border: #b8c5f5;
+  --green: #1a7a4a;
+  --green-bg: #e8f5ee;
+  --green-border: #a8d5bc;
+  --amber: #8a5a00;
+  --amber-bg: #fdf3e0;
+  --amber-border: #f0d090;
+  --red: #c0392b;
+  --red-bg: #fdecea;
+  --red-border: #f5b8b0;
+  --purple: #5a3db8;
+  --purple-bg: #f0ecfc;
+  --purple-border: #c5b5f0;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+[data-theme="dark"] {
+  --bg: #131210;
+  --surface: #1c1b18;
+  --surface2: #252320;
+  --border: #2e2c28;
+  --border2: #3a3834;
+  --text: #f0ede8;
+  --text2: #a09d96;
+  --text3: #68655e;
+  --accent: #6b8ef0;
+  --accent-bg: #1a2040;
+  --accent-border: #2d4080;
+  --green: #4aac72;
+  --green-bg: #0f2a1c;
+  --green-border: #1a4a30;
+  --amber: #e0a020;
+  --amber-bg: #251c08;
+  --amber-border: #4a3410;
+  --red: #e06060;
+  --red-bg: #280e0e;
+  --red-border: #4a1a1a;
+  --purple: #9b7ef0;
+  --purple-bg: #1e1530;
+  --purple-border: #3a2860;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* HEADER */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.logo-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-btn {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: all 0.15s;
+  color: var(--text);
+}
+.theme-btn:hover { border-color: var(--border2); background: var(--border); }
+
+/* TABS */
+.tabs-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  color: var(--text2);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+/* LAYOUT */
+.app-body { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .two-col { grid-template-columns: 1fr; }
+  .app-body { padding: 16px; }
+}
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.card:last-child { margin-bottom: 0; }
+
+.card-title {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  margin-bottom: 14px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* FORM ELEMENTS */
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 5px;
+  margin-top: 12px;
+}
+label:first-child { margin-top: 0; }
+
+textarea, select, input[type="number"], input[type="text"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  transition: border-color 0.15s;
+  outline: none;
+}
+textarea { resize: vertical; min-height: 90px; font-size: 11px; }
+textarea:focus, select:focus, input:focus { border-color: var(--accent); }
+select { cursor: pointer; }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+  margin-top: 6px;
+}
+.btn:hover { background: var(--surface2); }
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-border); }
+
+.btn-green {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.btn-green:hover { background: var(--green-border); }
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-top: 0;
+}
+
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { flex: 1; }
+
+/* METRICS */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.metric {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+}
+.metric-label { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 4px; }
+.metric-value { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+
+/* FORMULA BOX */
+.formula {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.7;
+}
+
+/* ALERTS */
+.alert {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 12px;
+  border: 1px solid;
+}
+.alert-ok { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+.alert-warn { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
+.alert-info { background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent); }
+.alert-err { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+
+/* SUMMARY BOX */
+.summary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  line-height: 1.8;
+}
+.summary b { font-weight: 600; color: var(--text); }
+
+/* TABLE */
+.table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: auto;
+  max-height: 420px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.table-placeholder {
+  padding: 32px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead { position: sticky; top: 0; z-index: 2; }
+th {
+  background: var(--surface2);
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+}
+td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr.row-sel td { background: var(--green-bg); }
+tr:hover td { background: var(--surface2); }
+tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 90%, #000 10%); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'DM Mono', monospace;
+}
+.badge-yes { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.badge-no { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+.badge-arm { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+
+.num { color: var(--text3); font-family: 'DM Mono', monospace; font-size: 11px; }
+
+/* STRAT TABLE */
+.strat-alloc {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.strat-alloc table { margin: 0; }
+.strat-alloc th, .strat-alloc td { padding: 7px 12px; }
+
+/* HINT */
+.hint {
+  font-size: 12px;
+  color: var(--text3);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+/* ABOUT */
+.about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .about-grid { grid-template-columns: 1fr; } }
+
+.method-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.method-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.method-card p {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.7;
+}
+
+.dev-card {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-top: 16px;
+}
+
+/* SECTION HEADING */
+.section-head {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.section-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 20px;
+}
+
+/* FOOTER */
+.footer {
+  text-align: center;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+  font-size: 12px;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+.footer a { color: var(--accent); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* MANUAL STRAT INPUTS */
+.strat-manual-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-top: 8px;
+}
+.strat-manual-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.strat-manual-row:last-child { margin-bottom: 0; }
+.strat-manual-row label { margin: 0; flex: 1; font-size: 12px; }
+.strat-manual-row input { width: 80px; flex: none; }
+
+/* EXP ARM NAMES */
+.arm-names-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.arm-names-grid input { margin: 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    TagSelect
+    <span class="logo-sub">v2.0</span>
+  </div>
+  <div class="header-right">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme" id="theme-btn">☀</button>
+  </div>
+</div>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="showTab('simple',this)">Simple Random</button>
+  <button class="tab-btn" onclick="showTab('systematic',this)">Systematic</button>
+  <button class="tab-btn" onclick="showTab('stratified',this)">Stratified</button>
+  <button class="tab-btn" onclick="showTab('experimental',this)">Experimental</button>
+  <button class="tab-btn" onclick="showTab('about',this)">About</button>
+</div>
+
+<div class="app-body">
+
+<!-- ==================== SIMPLE ==================== -->
+<div id="tab-simple" class="panel active">
+  <div class="section-head">Simple Random Sampling</div>
+  <div class="section-sub">Every unit has an equal probability of selection. Implemented using Fisher-Yates shuffle.</div>
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">01 — Paste data</div>
+        <div class="hint">Copy from Excel/Sheets and paste here. First row = header. Comma or tab separated.</div>
+        <textarea id="s-paste" placeholder="ID,Name&#10;1,Alice&#10;2,Bob&#10;3,Carol&#10;4,David&#10;5,Eve"></textarea>
+        <button class="btn btn-primary" onclick="parseData('s')">↑ Load data</button>
+      </div>
+      <div class="card">
+        <div class="card-title">02 — Sample settings</div>
+        <div class="formula">π = n / N<br>Each unit equally likely to be selected<br>Sampling without replacement</div>
+        <label>Sample size (n)</label>
+        <input type="number" id="s-n" value="5" min="1">
+        <label>Random seed (optional, for reproducibility)</label>
+        <input type="number" id="s-seed" placeholder="e.g. 42">
+        <button class="btn btn-primary" onclick="doSimple()">▶ Select sample</button>
+      </div>
+      <div class="card">
+        <div class="card-title">03 — Export results</div>
+        <div class="btn-row">
+          <button class="btn btn-green btn-sm" onclick="exportCSV('s','all')">CSV — full list</button>
+          <button class="btn btn-green btn-sm" onclick="exportCSV('s','selected')">CSV — selected only</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="metrics-grid">
+        <div class="metric"><div class="metric-label">Population N</div><div class="metric-value" id="s-mN">—</div></div>
+        <div class="metric"><div class="metric-label">Sample n</div><div class="metric-value" id="s-mn">—</div></div>
+        <div class="metric"><div class="metric-label">Fraction f</div><div class="metric-value" id="s-mf">—</div></div>
+      </div>
+      <div id="s-alert"></div>
+      <div id="s-summary"></div>
+      <div class="table-wrap" id="s-table"><div class="table-placeholder">← Load data to begin</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SYSTEMATIC ==================== -->
+<div id="tab-systematic" class="panel">
+  <div class="section-head">Systematic Sampling</div>
+  <div class="section-sub">Select every k-th unit after a random start. Guarantees even spread across the list.</div>
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">01 — Paste data</div>
+        <textarea id="sy-paste" placeholder="ID,Name&#10;1,Alice&#10;2,Bob&#10;..."></textarea>
+        <button class="btn btn-primary" onclick="parseData('sy')">↑ Load data</button>
+      </div>
+      <div class="card">
+        <div class="card-title">02 — Settings</div>
+        <div class="formula">k = ⌊N / n⌋<br>r ~ Uniform(1, k)  ← random start<br>Selected: r, r+k, r+2k, …</div>
+        <label>Sample size (n)</label>
+        <input type="number" id="sy-n" value="10" min="1">
+        <label>Override interval k (optional)</label>
+        <input type="number" id="sy-k" placeholder="Leave blank to auto-calculate">
+        <div class="hint">When k is blank, it is computed as ⌊N/n⌋.</div>
+        <label>Random seed (optional)</label>
+        <input type="number" id="sy-seed" placeholder="e.g. 42">
+        <button class="btn btn-primary" onclick="doSystematic()">▶ Select sample</button>
+      </div>
+      <div class="card">
+        <div class="card-title">03 — Export</div>
+        <div class="btn-row">
+          <button class="btn btn-green btn-sm" onclick="exportCSV('sy','all')">CSV — full list</button>
+          <button class="btn btn-green btn-sm" onclick="exportCSV('sy','selected')">CSV — selected only</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="metrics-grid">
+        <div class="metric"><div class="metric-label">Population N</div><div class="metric-value" id="sy-mN">—</div></div>
+        <div class="metric"><div class="metric-label">Interval k</div><div class="metric-value" id="sy-mk">—</div></div>
+        <div class="metric"><div class="metric-label">Random start</div><div class="metric-value" id="sy-mr">—</div></div>
+      </div>
+      <div id="sy-alert"></div>
+      <div id="sy-summary"></div>
+      <div class="table-wrap" id="sy-table"><div class="table-placeholder">← Load data to begin</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== STRATIFIED ==================== -->
+<div id="tab-stratified" class="panel">
+  <div class="section-head">Stratified Sampling</div>
+  <div class="section-sub">Divide population into strata, then sample independently within each. Ensures representation.</div>
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">01 — Paste data</div>
+        <div class="hint">Must include a column for the strata variable (e.g. Region, Gender, School).</div>
+        <textarea id="st-paste" placeholder="ID,Name,Region&#10;1,Alice,North&#10;2,Bob,South&#10;3,Carol,North&#10;4,David,East&#10;5,Eve,South"></textarea>
+        <button class="btn btn-primary" onclick="parseData('st')">↑ Load data</button>
+      </div>
+      <div class="card">
+        <div class="card-title">02 — Settings</div>
+        <div class="formula">Proportional: nₕ = round(n × Nₕ / N)<br>Equal: nₕ = round(n / H)<br>Manual: specify per stratum</div>
+        <label>Strata column</label>
+        <select id="st-col" onchange="updateManualUI()"><option value="">— load data first —</option></select>
+        <label>Total sample size (n)</label>
+        <input type="number" id="st-n" value="20" min="1">
+        <label>Allocation method</label>
+        <select id="st-method" onchange="updateManualUI()">
+          <option value="proportional">Proportional allocation</option>
+          <option value="equal">Equal allocation</option>
+          <option value="manual">Manual (specify per stratum)</option>
+        </select>
+        <div id="st-manual-ui"></div>
+        <label>Random seed (optional)</label>
+        <input type="number" id="st-seed" placeholder="e.g. 42">
+        <button class="btn btn-primary" onclick="doStratified()">▶ Select sample</button>
+      </div>
+      <div class="card">
+        <div class="card-title">03 — Export</div>
+        <div class="btn-row">
+          <button class="btn btn-green btn-sm" onclick="exportCSV('st','all')">CSV — full list</button>
+          <button class="btn btn-green btn-sm" onclick="exportCSV('st','selected')">CSV — selected only</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div id="st-alloc"></div>
+      <div id="st-alert"></div>
+      <div id="st-summary"></div>
+      <div class="table-wrap" id="st-table"><div class="table-placeholder">← Load data to begin</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EXPERIMENTAL ==================== -->
+<div id="tab-experimental" class="panel">
+  <div class="section-head">Experimental Randomization</div>
+  <div class="section-sub">Assign participants to treatment arms using rigorous experimental designs.</div>
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">01 — Paste data or generate</div>
+        <div class="hint">Paste a participant list, or leave blank and set a count to auto-generate IDs.</div>
+        <textarea id="ex-paste" placeholder="ID,Name&#10;1,Alice&#10;2,Bob&#10;..." rows="5"></textarea>
+        <label>Or generate N participants (used if paste is empty)</label>
+        <input type="number" id="ex-gen" value="30" min="2">
+        <button class="btn btn-primary" onclick="parseData('ex')">↑ Load / Generate</button>
+      </div>
+      <div class="card">
+        <div class="card-title">02 — Randomization method</div>
+        <label>Method</label>
+        <select id="ex-method" onchange="updateExpUI()">
+          <option value="simple">Simple randomization</option>
+          <option value="complete">Complete (balanced)</option>
+          <option value="block">Block randomization</option>
+          <option value="stratified">Stratified randomization</option>
+        </select>
+        <div id="ex-formula" class="formula"></div>
+        <div id="ex-block-ui" style="display:none">
+          <label>Block size (will be rounded to nearest multiple of arms)</label>
+          <input type="number" id="ex-block-size" value="4" min="2" max="40">
+        </div>
+        <div id="ex-strat-ui" style="display:none">
+          <label>Strata column</label>
+          <select id="ex-strat-col"><option value="">— load data first —</option></select>
+        </div>
+        <label>Number of treatment arms</label>
+        <input type="number" id="ex-arms" value="2" min="2" max="20" oninput="renderArmNames()">
+        <label>Arm names (one per field)</label>
+        <div id="ex-arm-names" class="arm-names-grid"></div>
+        <label>Random seed (optional)</label>
+        <input type="number" id="ex-seed" placeholder="e.g. 42">
+        <button class="btn btn-primary" onclick="doExperimental()">▶ Randomize</button>
+      </div>
+      <div class="card">
+        <div class="card-title">03 — Export</div>
+        <button class="btn btn-green" onclick="exportCSV('ex','all')">CSV — randomized list</button>
+      </div>
+    </div>
+    <div>
+      <div id="ex-alert"></div>
+      <div id="ex-summary"></div>
+      <div class="table-wrap" id="ex-table"><div class="table-placeholder">← Load data, then randomize</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ABOUT ==================== -->
+<div id="tab-about" class="panel">
+  <div class="section-head">About TagSelect</div>
+  <div class="section-sub">A browser-based sampling and randomization tool for researchers. No data leaves your device.</div>
+
+  <div class="about-grid">
+    <div class="method-card">
+      <h3>Simple Random Sampling (SRS)</h3>
+      <p>Every unit in the population has equal probability π = n/N of selection. A Fisher-Yates shuffle is applied to indices; the first n are selected. Sampling is performed without replacement.</p>
+    </div>
+    <div class="method-card">
+      <h3>Systematic Sampling</h3>
+      <p>The sampling interval k = ⌊N/n⌋ is computed. A random start r is drawn from the discrete uniform distribution U(1, k). Units at positions r, r+k, r+2k, … form the sample.</p>
+    </div>
+    <div class="method-card">
+      <h3>Proportional Stratified Sampling</h3>
+      <p>The population is partitioned into H strata. Within stratum h, the allocation is nₕ = round(n × Nₕ/N). SRS without replacement is applied within each stratum.</p>
+    </div>
+    <div class="method-card">
+      <h3>Equal Stratified Sampling</h3>
+      <p>Each of the H strata receives nₕ = round(n/H) units, regardless of stratum size. Useful when all strata warrant equal representation in the analysis.</p>
+    </div>
+    <div class="method-card">
+      <h3>Complete (Balanced) Randomization</h3>
+      <p>Exactly ⌊N/arms⌋ participants are assigned to each arm; remainder units are assigned round-robin. The full assignment vector is then globally shuffled, ensuring balance.</p>
+    </div>
+    <div class="method-card">
+      <h3>Block Randomization</h3>
+      <p>Participants are grouped into blocks of size b (rounded to nearest multiple of arms). Within each block, arm assignments are randomly permuted. Guarantees balance at every block boundary.</p>
+    </div>
+    <div class="method-card">
+      <h3>Stratified Randomization</h3>
+      <p>Complete or block randomization is applied independently within each stratum. Combines stratification with experimental assignment for covariate-adaptive balance.</p>
+    </div>
+    <div class="method-card">
+      <h3>Privacy & data handling</h3>
+      <p>All computations happen in your browser. No data is uploaded, transmitted, or stored on any server. The random number generator uses a seeded linear congruential PRNG — specify a seed to make results reproducible.</p>
+    </div>
+  </div>
+
+  <div class="dev-card" style="margin-top:16px">
+    <strong style="font-size:14px">TagSelect — developed by Mudasir Mohammed Ibrahim</strong><br>
+    <span style="font-size:12px;color:var(--text2)">Email: mudassiribrahim30@gmail.com &nbsp;|&nbsp; Version 2.0 &nbsp;|&nbsp; Capacity: up to 50,000 rows</span><br>
+    <div style="margin-top:8px;font-size:12px">
+      <a href="https://www.researchgate.net/profile/Mudasir-Ibrahim" target="_blank">ResearchGate</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/mudassiribrahim30" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text2)">
+    <strong style="color:var(--text)">Citation:</strong><br>
+    Ibrahim, M. M. (2025). <em>TagSelect: High-Capacity Random Sampler</em> [Computer software].
+  </div>
+</div>
+
+</div><!-- /app-body -->
+
+<div class="footer">
+  TagSelect &nbsp;·&nbsp; Developed by Mudasir Mohammed Ibrahim &nbsp;·&nbsp; &copy; 2025 All Rights Reserved
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+var S = {
+  s:  { data: [], headers: [], selected: [] },
+  sy: { data: [], headers: [], selected: [] },
+  st: { data: [], headers: [], selected: [] },
+  ex: { data: [], headers: [], assigned: [] }
+};
+
+// ─── THEME ───────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  document.getElementById('theme-btn').textContent = isDark ? '☀' : '☾';
+  localStorage.setItem('ts-theme', isDark ? 'light' : 'dark');
+}
+(function() {
+  var t = localStorage.getItem('ts-theme');
+  if (t === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); document.addEventListener('DOMContentLoaded', function() { var b = document.getElementById('theme-btn'); if(b) b.textContent = '☾'; }); }
+})();
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ─── PRNG ────────────────────────────────────────────────────────────────────
+function mkRng(seed) {
+  var s = (seed !== null && seed !== undefined && seed !== '') ? parseInt(seed) : Math.floor(Math.random() * 1e8);
+  return function() {
+    s = (1664525 * s + 1013904223) | 0;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+// ─── PARSE ───────────────────────────────────────────────────────────────────
+function parsePaste(raw) {
+  var lines = raw.trim().split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+  if (!lines.length) return null;
+  var sep = lines[0].indexOf('\t') > -1 ? '\t' : ',';
+  var headers = lines[0].split(sep).map(function(h){ return h.trim().replace(/^"|"$/g,''); });
+  var rows = [];
+  for (var i = 1; i < lines.length; i++) {
+    var cells = lines[i].split(sep).map(function(c){ return c.trim().replace(/^"|"$/g,''); });
+    var obj = {};
+    headers.forEach(function(h, j) { obj[h] = cells[j] !== undefined ? cells[j] : ''; });
+    rows.push(obj);
+  }
+  return { headers: headers, rows: rows };
+}
+
+function parseData(key) {
+  var pasteEl = document.getElementById(key + '-paste');
+  var raw = pasteEl ? pasteEl.value.trim() : '';
+
+  if (key === 'ex' && !raw) {
+    var n = parseInt(document.getElementById('ex-gen').value) || 30;
+    var rows = [];
+    for (var i = 1; i <= n; i++) rows.push({ ID: i, Name: 'P-' + String(i).padStart(3,'0') });
+    S.ex.data = rows; S.ex.headers = ['ID', 'Name']; S.ex.assigned = [];
+    setAlert('ex', 'ok', 'Generated ' + n + ' participant IDs.');
+    document.getElementById('ex-table').innerHTML = '<div class="table-placeholder">Data loaded — click Randomize</div>';
+    updateExpStratCols();
+    return;
+  }
+
+  if (!raw) { setAlert(key, 'err', 'Please paste data first.'); return; }
+
+  var d = parsePaste(raw);
+  if (!d || !d.rows.length) { setAlert(key, 'err', 'Could not parse data. Check format.'); return; }
+
+  if (d.rows.length > 50000) { setAlert(key, 'warn', 'Dataset truncated to 50,000 rows.'); d.rows = d.rows.slice(0, 50000); }
+
+  S[key].data = d.rows; S[key].headers = d.headers;
+  if (key !== 'ex') S[key].selected = [];
+  else { S.ex.assigned = []; updateExpStratCols(); }
+
+  setAlert(key, 'ok', 'Loaded ' + d.rows.length + ' rows · ' + d.headers.length + ' columns.');
+
+  if (key === 's') { document.getElementById('s-mN').textContent = d.rows.length; renderTable('s', [], false); }
+  if (key === 'sy') { document.getElementById('sy-mN').textContent = d.rows.length; renderTable('sy', [], false); }
+  if (key === 'st') {
+    renderTable('st', [], false);
+    var col = document.getElementById('st-col');
+    col.innerHTML = '';
+    d.headers.forEach(function(h){ var o = document.createElement('option'); o.value = h; o.textContent = h; col.appendChild(o); });
+    updateManualUI();
+  }
+  if (key === 'ex') {
+    document.getElementById('ex-table').innerHTML = '<div class="table-placeholder">Data loaded — click Randomize</div>';
+  }
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function setAlert(key, type, msg) {
+  var el = document.getElementById(key + '-alert');
+  if (!el) return;
+  el.innerHTML = '<div class="alert alert-' + type + '">' + msg + '</div>';
+}
+
+function fishYates(N, n, rng) {
+  var arr = []; for (var i = 0; i < N; i++) arr.push(i);
+  for (var i = N - 1; i > 0; i--) {
+    var j = Math.floor(rng() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr.slice(0, n).sort(function(a,b){ return a-b; });
+}
+
+function shuffle(arr, rng) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(rng() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+// ─── SIMPLE ──────────────────────────────────────────────────────────────────
+function doSimple() {
+  var d = S.s.data; if (!d.length) { setAlert('s','err','Load data first.'); return; }
+  var n = parseInt(document.getElementById('s-n').value);
+  var seed = document.getElementById('s-seed').value;
+  var N = d.length;
+  if (isNaN(n) || n < 1 || n > N) { setAlert('s','err','n must be between 1 and ' + N); return; }
+  var rng = mkRng(seed !== '' ? seed : null);
+  var sel = fishYates(N, n, rng);
+  S.s.selected = sel;
+  document.getElementById('s-mn').textContent = n;
+  document.getElementById('s-mf').textContent = (n/N*100).toFixed(1) + '%';
+  renderTable('s', sel, false);
+  document.getElementById('s-summary').innerHTML = '<div class="summary"><b>' + n + '</b> participants selected from <b>' + N + '</b>. Sampling fraction f = ' + n + '/' + N + ' = ' + (n/N*100).toFixed(4) + '%. Each unit had probability π = ' + (n/N).toFixed(4) + ' of selection.</div>';
+  setAlert('s','ok','Sample selected successfully.');
+}
+
+// ─── SYSTEMATIC ──────────────────────────────────────────────────────────────
+function doSystematic() {
+  var d = S.sy.data; if (!d.length) { setAlert('sy','err','Load data first.'); return; }
+  var N = d.length;
+  var n = parseInt(document.getElementById('sy-n').value);
+  var kOverride = document.getElementById('sy-k').value;
+  var seed = document.getElementById('sy-seed').value;
+  if (isNaN(n) || n < 1 || n > N) { setAlert('sy','err','n must be between 1 and ' + N); return; }
+  var k = kOverride !== '' ? parseInt(kOverride) : Math.floor(N / n);
+  if (k < 1) { setAlert('sy','err','k must be at least 1.'); return; }
+  var rng = mkRng(seed !== '' ? seed : null);
+  var start = Math.floor(rng() * k) + 1;
+  var sel = [];
+  for (var i = start - 1; i < N; i += k) sel.push(i);
+  sel = sel.slice(0, n);
+  S.sy.selected = sel;
+  document.getElementById('sy-mk').textContent = k;
+  document.getElementById('sy-mr').textContent = start;
+  renderTable('sy', sel, false);
+  document.getElementById('sy-summary').innerHTML = '<div class="summary"><b>' + sel.length + '</b> selected from <b>' + N + '</b>. k = ' + k + ', random start = ' + start + '. Selected positions: ' + sel.map(function(i){ return i+1; }).slice(0,8).join(', ') + (sel.length > 8 ? ', …' : '') + '.</div>';
+  setAlert('sy','ok','Systematic sample selected.');
+}
+
+// ─── STRATIFIED ──────────────────────────────────────────────────────────────
+function updateManualUI() {
+  var method = document.getElementById('st-method').value;
+  var col = document.getElementById('st-col').value;
+  var ui = document.getElementById('st-manual-ui');
+  if (method === 'manual' && col && S.st.data.length) {
+    var groups = {}; S.st.data.forEach(function(r){ var v = r[col] || '(blank)'; groups[v] = (groups[v]||0)+1; });
+    var n = parseInt(document.getElementById('st-n').value) || 20;
+    var H = Object.keys(groups).length;
+    var html = '<div class="strat-manual-box">';
+    Object.keys(groups).sort().forEach(function(g) {
+      var defVal = Math.max(1, Math.round(n/H));
+      html += '<div class="strat-manual-row"><label>' + g + ' (N=' + groups[g] + ')</label><input type="number" id="man-' + encodeURIComponent(g) + '" value="' + defVal + '" min="1" max="' + groups[g] + '"></div>';
+    });
+    html += '</div>';
+    ui.innerHTML = html;
+  } else {
+    ui.innerHTML = '';
+  }
+}
+
+function doStratified() {
+  var d = S.st.data; if (!d.length) { setAlert('st','err','Load data first.'); return; }
+  var col = document.getElementById('st-col').value;
+  var n = parseInt(document.getElementById('st-n').value);
+  var method = document.getElementById('st-method').value;
+  var seed = document.getElementById('st-seed').value;
+  var N = d.length;
+  var rng = mkRng(seed !== '' ? seed : null);
+
+  var groups = {};
+  d.forEach(function(r, i) { var v = r[col] || '(blank)'; if (!groups[v]) groups[v] = []; groups[v].push(i); });
+  var H = Object.keys(groups).length;
+  var selected = [];
+  var allocRows = '';
+
+  Object.keys(groups).sort().forEach(function(g) {
+    var Nh = groups[g].length;
+    var nh;
+    if (method === 'proportional') nh = Math.max(1, Math.round(n * Nh / N));
+    else if (method === 'equal') nh = Math.max(1, Math.round(n / H));
+    else {
+      var el = document.getElementById('man-' + encodeURIComponent(g));
+      nh = el ? (parseInt(el.value) || 1) : 1;
+    }
+    nh = Math.min(nh, Nh);
+    var picked = fishYates(Nh, nh, rng);
+    picked.forEach(function(p) { selected.push(groups[g][p]); });
+    allocRows += '<tr><td>' + g + '</td><td>' + Nh + '</td><td>' + nh + '</td><td>' + (nh/Nh*100).toFixed(1) + '%</td></tr>';
+  });
+
+  S.st.selected = selected;
+  document.getElementById('st-alloc').innerHTML = '<div class="strat-alloc"><table><thead><tr><th>Stratum</th><th>Nₕ</th><th>nₕ</th><th>Rate</th></tr></thead><tbody>' + allocRows + '</tbody></table></div>';
+  renderTable('st', selected, false);
+  document.getElementById('st-summary').innerHTML = '<div class="summary"><b>' + selected.length + '</b> selected across <b>' + H + '</b> strata using <b>' + method + '</b> allocation from a population of <b>' + N + '</b>.</div>';
+  setAlert('st','ok','Stratified sample selected.');
+}
+
+// ─── EXPERIMENTAL ────────────────────────────────────────────────────────────
+function updateExpUI() {
+  var method = document.getElementById('ex-method').value;
+  var hints = {
+    simple: 'Each participant independently assigned to arm with probability 1/k.',
+    complete: 'Exactly ⌊N/k⌋ units per arm. Globally shuffled for balance.',
+    block: 'Permuted blocks of size b. Balance guaranteed every b participants.',
+    stratified: 'Complete randomization within each stratum independently.'
+  };
+  document.getElementById('ex-formula').textContent = hints[method] || '';
+  document.getElementById('ex-block-ui').style.display = method === 'block' ? 'block' : 'none';
+  document.getElementById('ex-strat-ui').style.display = method === 'stratified' ? 'block' : 'none';
+}
+
+function renderArmNames() {
+  var arms = parseInt(document.getElementById('ex-arms').value) || 2;
+  var defaults = ['Treatment','Control','Arm C','Arm D','Arm E','Arm F','Arm G','Arm H','Arm I','Arm J'];
+  var html = '';
+  for (var i = 0; i < arms; i++) {
+    html += '<input type="text" id="arm-' + i + '" value="' + (defaults[i] || 'Arm ' + (i+1)) + '">';
+  }
+  document.getElementById('ex-arm-names').innerHTML = html;
+}
+
+function getArmNames() {
+  var arms = parseInt(document.getElementById('ex-arms').value) || 2;
+  var names = [];
+  for (var i = 0; i < arms; i++) {
+    var el = document.getElementById('arm-' + i);
+    names.push(el ? el.value.trim() || 'Arm '+(i+1) : 'Arm '+(i+1));
+  }
+  return names;
+}
+
+function updateExpStratCols() {
+  var sel = document.getElementById('ex-strat-col');
+  sel.innerHTML = '<option value="">— select —</option>';
+  S.ex.headers.forEach(function(h){ var o = document.createElement('option'); o.value=h; o.textContent=h; sel.appendChild(o); });
+}
+
+function doExperimental() {
+  var d = S.ex.data; if (!d.length) { setAlert('ex','err','Load or generate data first.'); return; }
+  var N = d.length;
+  var method = document.getElementById('ex-method').value;
+  var arms = parseInt(document.getElementById('ex-arms').value) || 2;
+  var names = getArmNames();
+  var seed = document.getElementById('ex-seed').value;
+  var rng = mkRng(seed !== '' ? seed : null);
+  var assignment = new Array(N);
+
+  if (method === 'simple') {
+    for (var i = 0; i < N; i++) assignment[i] = names[Math.floor(rng() * arms)];
+  } else if (method === 'complete') {
+    var base = [];
+    for (var i = 0; i < N; i++) base.push(names[i % arms]);
+    base = shuffle(base, rng);
+    assignment = base;
+  } else if (method === 'block') {
+    var bs = arms * Math.max(1, Math.round((parseInt(document.getElementById('ex-block-size').value)||4) / arms));
+    var result = [];
+    while (result.length < N) {
+      var block = [];
+      for (var i = 0; i < bs; i++) block.push(names[i % arms]);
+      block = shuffle(block, rng);
+      result = result.concat(block);
+    }
+    assignment = result.slice(0, N);
+  } else if (method === 'stratified') {
+    var scol = document.getElementById('ex-strat-col').value;
+    if (!scol) { setAlert('ex','err','Select a strata column first.'); return; }
+    var sgroups = {};
+    d.forEach(function(r, i) { var v = r[scol] || '(blank)'; if (!sgroups[v]) sgroups[v]=[]; sgroups[v].push(i); });
+    Object.keys(sgroups).forEach(function(g) {
+      var idxs = sgroups[g];
+      var base = [];
+      for (var i = 0; i < idxs.length; i++) base.push(names[i % arms]);
+      base = shuffle(base, rng);
+      idxs.forEach(function(idx, pos) { assignment[idx] = base[pos]; });
+    });
+  }
+
+  S.ex.assigned = assignment;
+  renderExpTable();
+
+  var counts = {}; names.forEach(function(n){ counts[n]=0; });
+  assignment.forEach(function(a){ if(a) counts[a]=(counts[a]||0)+1; });
+  var rows = '';
+  names.forEach(function(nm) {
+    rows += '<tr><td>' + nm + '</td><td>' + counts[nm] + '</td><td>' + (counts[nm]/N*100).toFixed(1) + '%</td></tr>';
+  });
+  document.getElementById('ex-summary').innerHTML = '<div class="strat-alloc"><table><thead><tr><th>Arm</th><th>N assigned</th><th>%</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  setAlert('ex','ok','Randomization complete — ' + N + ' participants across ' + arms + ' arms.');
+}
+
+// ─── RENDER TABLE ────────────────────────────────────────────────────────────
+function renderTable(key, selected, isExp) {
+  var d = S[key].data; var h = S[key].headers;
+  var selSet = new Set(selected);
+  var html = '<table><thead><tr><th>#</th>';
+  h.forEach(function(hh){ html += '<th>' + escH(hh) + '</th>'; });
+  html += '<th>' + (isExp ? 'Assignment' : 'Selected') + '</th></tr></thead><tbody>';
+  d.forEach(function(row, i) {
+    var isSel = selSet.has(i);
+    html += '<tr' + (isSel ? ' class="row-sel"' : '') + '>';
+    html += '<td class="num">' + (i+1) + '</td>';
+    h.forEach(function(hh){ html += '<td>' + escH(row[hh]) + '</td>'; });
+    if (isExp) {
+      html += '<td><span class="badge badge-arm">' + escH(S.ex.assigned[i] || '—') + '</span></td>';
+    } else {
+      html += '<td>' + (isSel ? '<span class="badge badge-yes">Yes</span>' : '<span class="badge badge-no">—</span>') + '</td>';
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById(key + '-table').innerHTML = html;
+}
+
+function renderExpTable() {
+  renderTable('ex', [], true);
+}
+
+function escH(s) {
+  if (s === undefined || s === null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── EXPORT ──────────────────────────────────────────────────────────────────
+function exportCSV(key, mode) {
+  var d, h, lines = [], filename;
+  if (key === 'ex') {
+    d = S.ex.data; h = S.ex.headers;
+    if (!d.length || !S.ex.assigned.length) { alert('Randomize first.'); return; }
+    lines.push(h.concat(['Assignment']).join(','));
+    d.forEach(function(r, i) {
+      lines.push(h.map(function(hh){ return '"' + (r[hh]||'') + '"'; }).concat(['"' + (S.ex.assigned[i]||'') + '"']).join(','));
+    });
+    filename = 'TagSelect_Randomized_' + ts() + '.csv';
+  } else {
+    d = S[key].data; h = S[key].headers;
+    var selSet = new Set(S[key].selected);
+    if (!d.length) { alert('Load data first.'); return; }
+    lines.push(h.concat(['Selected']).join(','));
+    d.forEach(function(r, i) {
+      if (mode === 'selected' && !selSet.has(i)) return;
+      lines.push(h.map(function(hh){ return '"' + (r[hh]||'') + '"'; }).concat([selSet.has(i)?'Yes':'']).join(','));
+    });
+    var keyNames = { s: 'Simple', sy: 'Systematic', st: 'Stratified' };
+    filename = 'TagSelect_' + keyNames[key] + '_' + (mode === 'selected' ? 'Selected_' : 'Full_') + ts() + '.csv';
+  }
+  var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function ts() { return new Date().toISOString().slice(0,16).replace(/[-:T]/g,''); }
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderArmNames();
+updateExpUI();
+</script>
+</body>
+</html>
