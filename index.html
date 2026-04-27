@@ -418,6 +418,7 @@ select { cursor: pointer; }
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   line-height: 1.9;
+  white-space: pre-line;
 }
 
 /* ALERTS */
@@ -667,6 +668,16 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
 }
 .groups-section label { margin-top: 8px; }
 .groups-section label:first-child { margin-top: 0; }
+
+/* Block size helper */
+.block-hint {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text3);
+  margin-top: 4px;
+}
+.block-hint.valid { color: var(--green); }
+.block-hint.invalid { color: var(--red); }
 </style>
 </head>
 <body>
@@ -675,7 +686,7 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
   <div class="logo">
     <div class="logo-icon">🎲</div>
     TagSelect
-    <span class="logo-sub">v1.0</span>
+    <span class="logo-sub">v1.1</span>
   </div>
   <div class="header-right">
     <a class="icon-btn" href="https://www.youtube.com/results?search_query=TagSelect+random+sampler" target="_blank" title="Watch how to use TagSelect">
@@ -698,7 +709,7 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
 <!-- ==================== SIMPLE ==================== -->
 <div id="tab-simple" class="panel active">
   <div class="section-head">Simple Random Sampling</div>
-  <div class="section-sub">Every unit has equal probability of selection. Implemented using Fisher-Yates shuffle. Unlimited row capacity.</div>
+  <div class="section-sub">Every unit has equal probability of selection. Implemented using Fisher-Yates shuffle with cryptographically secure randomness. Unlimited row capacity.</div>
   <div class="two-col">
     <div>
       <div class="card">
@@ -733,11 +744,14 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
       </div>
       <div class="card">
         <div class="card-title">02 — Sample settings</div>
-        <div class="formula">π = n / N<br>Each unit equally likely<br>Sampling without replacement</div>
+        <div class="formula">π = n / N
+Each unit equally likely
+Sampling without replacement
+RNG: crypto.getRandomValues (CSPRNG)</div>
         <label>Sample size (n)</label>
         <input type="number" id="s-n" value="10" min="1">
         <label>Random seed (optional — for reproducibility)</label>
-        <input type="number" id="s-seed" placeholder="e.g. 42">
+        <input type="number" id="s-seed" placeholder="Leave blank for CSPRNG">
         <button class="btn btn-primary" onclick="doSimple()">▶ Select sample</button>
       </div>
       <div class="card">
@@ -764,7 +778,7 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
 <!-- ==================== SYSTEMATIC ==================== -->
 <div id="tab-systematic" class="panel">
   <div class="section-head">Systematic Sampling</div>
-  <div class="section-sub">Select every k-th unit after a random start. Guarantees even spread across the list.</div>
+  <div class="section-sub">Select every k-th unit using fractional interval stepping. Guarantees exactly n samples with equal spacing. Ensure the population list has no hidden ordering patterns.</div>
   <div class="two-col">
     <div>
       <div class="card">
@@ -799,13 +813,14 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
       </div>
       <div class="card">
         <div class="card-title">02 — Settings</div>
-        <div class="formula">k = ⌊N / n⌋<br>r ~ Uniform(1, k) ← random start<br>Selected: r, r+k, r+2k, …</div>
+        <div class="formula">k = N / n  (fractional interval)
+r ~ Uniform(0, k)  ← random start
+Selected: ⌊r + i·k⌋ for i = 0…n−1
+Guarantees exactly n samples</div>
         <label>Desired sample size (n)</label>
         <input type="number" id="sy-n" value="10" min="1">
-        <label>Override interval k (optional — leave blank to auto-calculate)</label>
-        <input type="number" id="sy-k" placeholder="Auto: ⌊N/n⌋">
         <label>Random seed (optional)</label>
-        <input type="number" id="sy-seed" placeholder="e.g. 42">
+        <input type="number" id="sy-seed" placeholder="Leave blank for CSPRNG">
         <button class="btn btn-primary" onclick="doSystematic()">▶ Select sample</button>
       </div>
       <div class="card">
@@ -857,13 +872,16 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
           <input type="number" id="st-gen-nstrata" value="3" min="2" max="20" oninput="renderStrataNames('st')">
           <label>Strata names (comma-separated)</label>
           <input type="text" id="st-gen-snames" value="North,South,East">
-          <div class="hint">Participants are randomly assigned to strata (equal distribution).</div>
+          <div class="hint">Participants are randomly assigned to strata.</div>
           <button class="btn btn-primary" onclick="generateAndLoad('st')">⚡ Generate participants</button>
         </div>
       </div>
       <div class="card">
         <div class="card-title">02 — Settings</div>
-        <div class="formula">Proportional: nₕ = round(n × Nₕ / N)<br>Equal: nₕ = round(n / H)<br>Manual: specify per stratum</div>
+        <div class="formula">Proportional: nₕ = ⌊n × Nₕ/N⌋ + remainder
+Equal: nₕ = ⌊n/H⌋ + remainder
+Largest-remainder ensures Σnₕ = n exactly
+Allocation ≥ 0 (no forced minimum)</div>
         <label>Strata column</label>
         <select id="st-col" onchange="updateManualUI()"><option value="">— load data first —</option></select>
         <label>Total sample size (n)</label>
@@ -876,7 +894,7 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
         </select>
         <div id="st-manual-ui"></div>
         <label>Random seed (optional)</label>
-        <input type="number" id="st-seed" placeholder="e.g. 42">
+        <input type="number" id="st-seed" placeholder="Leave blank for CSPRNG">
         <button class="btn btn-primary" onclick="doStratified()">▶ Select sample</button>
       </div>
       <div class="card">
@@ -945,19 +963,30 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
         </select>
         <div id="ex-formula" class="formula"></div>
         <div id="ex-block-ui" style="display:none">
-          <label>Block size (rounded to multiple of arms)</label>
-          <input type="number" id="ex-block-size" value="4" min="2" max="40">
+          <label>Block size (must be a multiple of number of arms)</label>
+          <input type="number" id="ex-block-size" value="4" min="2" max="40" oninput="validateBlockSize()">
+          <div id="ex-block-hint" class="block-hint"></div>
         </div>
         <div id="ex-strat-ui" style="display:none">
           <label>Strata column</label>
           <select id="ex-strat-col"><option value="">— load data first —</option></select>
+          <label>Within-strata method</label>
+          <select id="ex-strat-inner">
+            <option value="complete">Complete (balanced)</option>
+            <option value="block">Block randomization</option>
+          </select>
+          <div id="ex-strat-block-ui" style="display:none; margin-top:8px;">
+            <label>Block size within strata</label>
+            <input type="number" id="ex-strat-block-size" value="4" min="2" max="40" oninput="validateStratBlockSize()">
+            <div id="ex-strat-block-hint" class="block-hint"></div>
+          </div>
         </div>
         <label>Number of treatment arms</label>
-        <input type="number" id="ex-arms" value="2" min="2" max="20" oninput="renderArmNames()">
+        <input type="number" id="ex-arms" value="2" min="2" max="20" oninput="onArmsChange()">
         <label>Arm names (one per field)</label>
         <div id="ex-arm-names" class="arm-names-grid"></div>
         <label>Random seed (optional)</label>
-        <input type="number" id="ex-seed" placeholder="e.g. 42">
+        <input type="number" id="ex-seed" placeholder="Leave blank for CSPRNG">
         <button class="btn btn-primary" onclick="doExperimental()">▶ Randomize</button>
       </div>
       <div class="card">
@@ -979,19 +1008,19 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
   <div class="section-sub">A browser-based sampling and randomization tool for researchers. All computations happen locally — no data ever leaves your device.</div>
 
   <div class="about-grid">
-    <div class="method-card"><h3><span class="mc-icon">🎯</span>Simple Random Sampling (SRS)</h3><p>Every unit in the population has equal probability π = n/N of selection. A Fisher-Yates shuffle is applied to indices; the first n are selected. Sampling is performed without replacement.</p></div>
-    <div class="method-card"><h3><span class="mc-icon">📐</span>Systematic Sampling</h3><p>The sampling interval k = ⌊N/n⌋ is computed. A random start r is drawn from U(1, k). Units at positions r, r+k, r+2k, … form the sample, guaranteeing even spread.</p></div>
-    <div class="method-card"><h3><span class="mc-icon">🗂️</span>Proportional Stratified</h3><p>The population is partitioned into H strata. Within stratum h, the allocation is nₕ = round(n × Nₕ/N). SRS without replacement is applied within each stratum.</p></div>
-    <div class="method-card"><h3><span class="mc-icon">⚖️</span>Equal Stratified</h3><p>Each of the H strata receives nₕ = round(n/H) units, regardless of stratum size. Useful when all strata warrant equal representation in the analysis.</p></div>
+    <div class="method-card"><h3><span class="mc-icon">🎯</span>Simple Random Sampling (SRS)</h3><p>Every unit in the population has equal probability π = n/N of selection. A Fisher-Yates shuffle is applied to indices; the first n are selected. Sampling is performed without replacement using CSPRNG (crypto.getRandomValues).</p></div>
+    <div class="method-card"><h3><span class="mc-icon">📐</span>Systematic Sampling</h3><p>The fractional interval k = N/n is computed. A random start r is drawn from U(0, k). Units at positions ⌊r⌋, ⌊r+k⌋, ⌊r+2k⌋, … form the sample, guaranteeing exactly n samples with even spacing.</p></div>
+    <div class="method-card"><h3><span class="mc-icon">🗂️</span>Proportional Stratified</h3><p>The population is partitioned into H strata. Allocation nₕ = ⌊n × Nₕ/N⌋ is computed per stratum, with the largest-remainder method distributing residuals to ensure Σnₕ = n exactly. No forced minimum — strata may receive 0 if quota rounds to zero.</p></div>
+    <div class="method-card"><h3><span class="mc-icon">⚖️</span>Equal Stratified</h3><p>Each of the H strata receives nₕ = ⌊n/H⌋ units via largest-remainder, ensuring the total is exactly n. Useful when all strata warrant equal representation regardless of size.</p></div>
     <div class="method-card"><h3><span class="mc-icon">✅</span>Complete (Balanced)</h3><p>Exactly ⌊N/arms⌋ participants are assigned to each arm; remainder units are assigned round-robin. The full assignment vector is then globally shuffled, ensuring balance.</p></div>
-    <div class="method-card"><h3><span class="mc-icon">🧩</span>Block Randomization</h3><p>Participants are grouped into blocks of size b (rounded to nearest multiple of arms). Within each block, arm assignments are randomly permuted. Guarantees balance at every block boundary.</p></div>
-    <div class="method-card"><h3><span class="mc-icon">🔬</span>Stratified Randomization</h3><p>Complete or block randomization is applied independently within each stratum. Combines stratification with experimental assignment for covariate-adaptive balance.</p></div>
-    <div class="method-card"><h3><span class="mc-icon">🔐</span>Privacy & Data Handling</h3><p>All computations happen in your browser. No data is uploaded, transmitted, or stored on any server. The seeded linear congruential PRNG makes results fully reproducible.</p></div>
+    <div class="method-card"><h3><span class="mc-icon">🧩</span>Block Randomization</h3><p>Block size must be a strict multiple of number of arms. Within each block, arm assignments are randomly permuted. Guarantees balance at every block boundary. Invalid block sizes are rejected with an error.</p></div>
+    <div class="method-card"><h3><span class="mc-icon">🔬</span>Stratified Randomization</h3><p>Complete or block randomization is applied independently within each stratum — the gold standard in RCTs. Block-within-strata option available for covariate-adaptive balance.</p></div>
+    <div class="method-card"><h3><span class="mc-icon">🔐</span>Privacy & Randomness</h3><p>All computations happen in your browser. No data is uploaded or stored. Without a seed, crypto.getRandomValues provides cryptographically secure randomness. With a seed, a deterministic LCG is used for exact reproducibility.</p></div>
   </div>
 
   <div style="margin-top:18px;padding:20px;background:linear-gradient(135deg,var(--accent-bg),var(--purple-bg));border:1px solid var(--accent-border);border-radius:var(--radius-lg);">
     <strong style="font-size:15px;color:var(--text)">TagSelect — developed by <a href="https://mudasiribrahim.github.io/gh/" target="_blank" style="color:var(--accent);text-decoration:none;">Mudasir Mohammed Ibrahim</a></strong><br>
-    <span style="font-size:12px;color:var(--text2)">Email: mudassiribrahim30@gmail.com &nbsp;·&nbsp; Version 1.0 &nbsp;·&nbsp; Unlimited row capacity</span><br>
+    <span style="font-size:12px;color:var(--text2)">Email: mudassiribrahim30@gmail.com &nbsp;·&nbsp; Version 1.1 &nbsp;·&nbsp; Research-grade · Unlimited row capacity</span><br>
     <div style="margin-top:10px;font-size:12px;display:flex;gap:14px;flex-wrap:wrap;">
       <a href="https://www.researchgate.net/profile/Mudasir-Ibrahim" target="_blank" style="color:var(--accent);text-decoration:none;">ResearchGate</a>
       <a href="https://github.com/shinyhealthtools" target="_blank" style="color:var(--accent);text-decoration:none;">GitHub</a>
@@ -1009,8 +1038,6 @@ tr.row-sel:hover td { background: color-mix(in srgb, var(--green-bg) 80%, var(--
 
 <div class="footer">
   <span>TagSelect · © 2026-Present | MIT License (Open Source)</span>
-  <span class="footer-sep">·</span>
-  <a href="https://mudasiribrahim.github.io/gh/" target="_blank">Mudasir Mohammed Ibrahim</a>
   <span class="footer-sep">·</span>
   <a href="https://github.com/shinyhealthtools/tagselect" target="_blank" title="View source on GitHub">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
@@ -1031,6 +1058,26 @@ var S = {
   st: { data: [], headers: [], selected: [], mode: 'paste' },
   ex: { data: [], headers: [], assigned: [], mode: 'paste' }
 };
+
+// ─── FIX 1: RNG — crypto.getRandomValues (CSPRNG) with seeded fallback ───────
+function secureRandom() {
+  var arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  return arr[0] / 4294967296;
+}
+
+function mkRng(seed) {
+  // No seed → cryptographically secure randomness
+  if (seed === '' || seed === null || seed === undefined) {
+    return secureRandom;
+  }
+  // Seeded → deterministic LCG for exact reproducibility
+  var s = parseInt(seed) | 0;
+  return function() {
+    s = (Math.imul(1664525, s) + 1013904223) | 0;
+    return (s >>> 0) / 4294967296;
+  };
+}
 
 // ─── THEME ───────────────────────────────────────────────────────────────────
 function toggleTheme() {
@@ -1075,16 +1122,17 @@ function toggleGenGroups(key) {
   if (ui) ui.style.display = val === 'yes' ? 'block' : 'none';
 }
 
-// ─── GENERATE PARTICIPANTS ────────────────────────────────────────────────────
+// ─── FIX 6: GENERATE PARTICIPANTS — random group assignment ──────────────────
 function generateAndLoad(key) {
   var nEl = document.getElementById(key + '-gen-n');
   var N = parseInt(nEl ? nEl.value : 60) || 60;
   var prefixEl = document.getElementById(key + '-gen-prefix');
   var prefix = prefixEl ? prefixEl.value.trim() || 'P' : 'P';
   var rows = [], headers;
+  // Use CSPRNG for data generation (no seed needed here)
+  var rng = secureRandom;
 
   if (key === 'st') {
-    // Stratified-specific: strata variable
     var strataName = (document.getElementById('st-gen-strataname') || {value:'Stratum'}).value.trim() || 'Stratum';
     var nStrata = parseInt((document.getElementById('st-gen-nstrata') || {value:3}).value) || 3;
     var sNamesRaw = (document.getElementById('st-gen-snames') || {value:''}).value.trim();
@@ -1092,23 +1140,24 @@ function generateAndLoad(key) {
     while (sNames.length < nStrata) sNames.push('Stratum ' + (sNames.length+1));
     headers = ['ID', 'Name', strataName];
     for (var i = 1; i <= N; i++) {
-      var st = sNames[(i-1) % nStrata];
-      rows.push({ ID: i, Name: prefix + '-' + String(i).padStart(String(N).length,'0'), [strataName]: st });
+      // FIX 6: random assignment instead of cyclic
+      var st = sNames[Math.floor(rng() * nStrata)];
+      var row = { ID: i, Name: prefix + '-' + String(i).padStart(String(N).length,'0') };
+      row[strataName] = st;
+      rows.push(row);
     }
-    // Update strata column selector
     S.st.data = rows; S.st.headers = headers; S.st.selected = [];
     var col = document.getElementById('st-col');
     col.innerHTML = '';
     headers.forEach(function(h){ var o = document.createElement('option'); o.value=h; o.textContent=h; col.appendChild(o); });
     col.value = strataName;
     updateManualUI();
-    setAlert('st','ok','Generated '+N+' participants across '+nStrata+' strata.');
+    setAlert('st','ok','Generated '+N+' participants across '+nStrata+' strata (random assignment).');
     renderTable('st',[],'selected');
-    document.getElementById('st-mN') && (document.getElementById('st-mN').textContent = N);
+    if (document.getElementById('st-mN')) document.getElementById('st-mN').textContent = N;
     return;
   }
 
-  // Check for groups
   var useGroups = (document.getElementById(key + '-gen-groups') || {value:'no'}).value === 'yes';
   if (useGroups) {
     var covarName = key === 'ex'
@@ -1120,7 +1169,11 @@ function generateAndLoad(key) {
     while (gNames.length < nGroups) gNames.push('Group ' + (gNames.length+1));
     headers = ['ID', 'Name', covarName];
     for (var i = 1; i <= N; i++) {
-      rows.push({ ID: i, Name: prefix+'-'+String(i).padStart(String(N).length,'0'), [covarName]: gNames[(i-1) % nGroups] });
+      // FIX 6: random group assignment
+      var grp = gNames[Math.floor(rng() * nGroups)];
+      var row = { ID: i, Name: prefix+'-'+String(i).padStart(String(N).length,'0') };
+      row[covarName] = grp;
+      rows.push(row);
     }
   } else {
     headers = ['ID', 'Name'];
@@ -1139,16 +1192,33 @@ function generateAndLoad(key) {
     renderTable(key, [], 'selected');
     if (document.getElementById(key+'-mN')) document.getElementById(key+'-mN').textContent = N;
   }
-  setAlert(key, 'ok', 'Generated ' + N + ' participants.');
+  setAlert(key, 'ok', 'Generated ' + N + ' participants (random group assignment).');
 }
 
-// ─── PRNG ────────────────────────────────────────────────────────────────────
-function mkRng(seed) {
-  var s = (seed !== null && seed !== undefined && seed !== '') ? parseInt(seed) : Math.floor(Math.random() * 1e9);
-  return function() {
-    s = (Math.imul(1664525, s) + 1013904223) | 0;
-    return (s >>> 0) / 4294967296;
-  };
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function setAlert(key, type, msg) {
+  var el = document.getElementById(key + '-alert');
+  if (!el) return;
+  var icons = { ok:'✓', warn:'⚠', info:'ℹ', err:'✕' };
+  el.innerHTML = '<div class="alert alert-' + type + '"><span>' + (icons[type]||'') + '</span><span>' + msg + '</span></div>';
+}
+
+function fishYates(N, n, rng) {
+  var arr = []; for (var i = 0; i < N; i++) arr.push(i);
+  for (var i = N - 1; i > 0; i--) {
+    var j = Math.floor(rng() * (i + 1));
+    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  }
+  return arr.slice(0, n).sort(function(a,b){ return a-b; });
+}
+
+function shuffle(arr, rng) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(rng() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
 }
 
 // ─── PARSE ───────────────────────────────────────────────────────────────────
@@ -1194,37 +1264,11 @@ function parseData(key) {
   }
 }
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-function setAlert(key, type, msg) {
-  var el = document.getElementById(key + '-alert');
-  if (!el) return;
-  var icons = { ok:'✓', warn:'⚠', info:'ℹ', err:'✕' };
-  el.innerHTML = '<div class="alert alert-' + type + '"><span>' + (icons[type]||'') + '</span><span>' + msg + '</span></div>';
-}
-
-function fishYates(N, n, rng) {
-  var arr = []; for (var i = 0; i < N; i++) arr.push(i);
-  for (var i = N - 1; i > 0; i--) {
-    var j = Math.floor(rng() * (i + 1));
-    var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
-  }
-  return arr.slice(0, n).sort(function(a,b){ return a-b; });
-}
-
-function shuffle(arr, rng) {
-  var a = arr.slice();
-  for (var i = a.length - 1; i > 0; i--) {
-    var j = Math.floor(rng() * (i + 1));
-    var t = a[i]; a[i] = a[j]; a[j] = t;
-  }
-  return a;
-}
-
-// ─── SIMPLE ──────────────────────────────────────────────────────────────────
+// ─── FIX: SIMPLE RANDOM SAMPLING ─────────────────────────────────────────────
 function doSimple() {
   var d = S.s.data; if (!d.length) { setAlert('s','err','Load or generate data first.'); return; }
   var n = parseInt(document.getElementById('s-n').value);
-  var seed = document.getElementById('s-seed').value;
+  var seed = document.getElementById('s-seed').value.trim();
   var N = d.length;
   if (isNaN(n) || n < 1 || n > N) { setAlert('s','err','n must be between 1 and ' + N.toLocaleString()); return; }
   var rng = mkRng(seed !== '' ? seed : null);
@@ -1233,34 +1277,57 @@ function doSimple() {
   document.getElementById('s-mn').textContent = n.toLocaleString();
   document.getElementById('s-mf').textContent = (n/N*100).toFixed(1) + '%';
   renderTable('s', sel, 'selected');
-  document.getElementById('s-summary').innerHTML = '<div class="summary"><b>'+n.toLocaleString()+'</b> participants selected from <b>'+N.toLocaleString()+'</b>. Sampling fraction f = '+n+'/'+N+' = '+(n/N*100).toFixed(4)+'%. Each unit had probability π = '+(n/N).toFixed(6)+' of selection.</div>';
+  var rngLabel = seed !== '' ? 'Seeded LCG (seed=' + seed + ')' : 'CSPRNG (crypto.getRandomValues)';
+  document.getElementById('s-summary').innerHTML = '<div class="summary"><b>'+n.toLocaleString()+'</b> participants selected from <b>'+N.toLocaleString()+'</b>. Sampling fraction f = '+n+'/'+N+' = '+(n/N*100).toFixed(4)+'%. Each unit had probability π = '+(n/N).toFixed(6)+' of selection. RNG: '+rngLabel+'.</div>';
   setAlert('s','ok','Sample selected successfully.');
 }
 
-// ─── SYSTEMATIC ──────────────────────────────────────────────────────────────
+// ─── FIX 2: SYSTEMATIC SAMPLING — fractional interval, exact n ───────────────
 function doSystematic() {
   var d = S.sy.data; if (!d.length) { setAlert('sy','err','Load or generate data first.'); return; }
   var N = d.length;
   var n = parseInt(document.getElementById('sy-n').value);
-  var kOverride = document.getElementById('sy-k').value;
-  var seed = document.getElementById('sy-seed').value;
+  var seed = document.getElementById('sy-seed').value.trim();
   if (isNaN(n) || n < 1 || n > N) { setAlert('sy','err','n must be between 1 and ' + N.toLocaleString()); return; }
-  var k = kOverride !== '' ? parseInt(kOverride) : Math.floor(N / n);
-  if (k < 1) { setAlert('sy','err','k must be at least 1.'); return; }
+
   var rng = mkRng(seed !== '' ? seed : null);
-  var start = Math.floor(rng() * k) + 1;
+  // FIX 2: Use fractional interval k = N/n (not floored), guarantees exactly n
+  var k = N / n;
+  var start = rng() * k; // r ~ Uniform(0, k)
   var sel = [];
-  for (var i = start - 1; i < N; i += k) sel.push(i);
-  sel = sel.slice(0, n);
-  S.sy.selected = sel;
-  document.getElementById('sy-mk').textContent = k.toLocaleString();
-  document.getElementById('sy-mr').textContent = start.toLocaleString();
-  renderTable('sy', sel, 'selected');
-  document.getElementById('sy-summary').innerHTML = '<div class="summary"><b>'+sel.length.toLocaleString()+'</b> selected from <b>'+N.toLocaleString()+'</b>. k = '+k+', random start = '+start+'. First positions: '+sel.map(function(i){return i+1;}).slice(0,8).join(', ')+(sel.length>8?', …':'')+'. Every '+k+'th unit selected.</div>';
-  setAlert('sy','ok','Systematic sample selected.');
+  for (var i = 0; i < n; i++) {
+    var idx = Math.floor(start + i * k) % N;
+    sel.push(idx);
+  }
+  // Sort for display clarity
+  var selSorted = sel.slice().sort(function(a,b){return a-b;});
+  S.sy.selected = selSorted;
+
+  document.getElementById('sy-mk').textContent = k.toFixed(2);
+  document.getElementById('sy-mr').textContent = start.toFixed(4);
+  renderTable('sy', selSorted, 'selected');
+
+  // FIX 7: Scientific safeguard warning
+  var rngLabel = seed !== '' ? 'Seeded LCG' : 'CSPRNG';
+  document.getElementById('sy-summary').innerHTML = '<div class="summary"><b>'+selSorted.length.toLocaleString()+'</b> selected from <b>'+N.toLocaleString()+'</b>. Fractional interval k = '+k.toFixed(4)+', random start r = '+start.toFixed(4)+'. First positions: '+sel.slice(0,8).map(function(i){return i+1;}).join(', ')+(sel.length>8?', …':'')+'. RNG: '+rngLabel+'.</div>';
+  setAlert('sy','ok','Systematic sample selected — exactly '+selSorted.length+' participants.');
+  // FIX 7: Population ordering warning
+  setMultiAlert('sy', [
+    { type: 'ok', msg: 'Systematic sample selected — exactly ' + selSorted.length + ' participants.' },
+    { type: 'warn', msg: '⚠ Ensure population list has no hidden ordering patterns (e.g. sorted by outcome) — these can bias systematic samples.' }
+  ]);
 }
 
-// ─── STRATIFIED ──────────────────────────────────────────────────────────────
+function setMultiAlert(key, alerts) {
+  var el = document.getElementById(key + '-alert');
+  if (!el) return;
+  var icons = { ok:'✓', warn:'⚠', info:'ℹ', err:'✕' };
+  el.innerHTML = alerts.map(function(a) {
+    return '<div class="alert alert-' + a.type + '" style="margin-bottom:6px"><span>' + (icons[a.type]||'') + '</span><span>' + a.msg + '</span></div>';
+  }).join('');
+}
+
+// ─── FIX 3: STRATIFIED SAMPLING — no forced minimum, proper largest-remainder ─
 function updateManualUI() {
   var method = document.getElementById('st-method').value;
   var col = document.getElementById('st-col').value;
@@ -1272,7 +1339,7 @@ function updateManualUI() {
     var html = '<div class="strat-manual-box">';
     Object.keys(groups).sort().forEach(function(g) {
       var defVal = Math.max(1, Math.round(n/H));
-      html += '<div class="strat-manual-row"><label>'+g+' (N='+groups[g]+')</label><input type="number" id="man-'+encodeURIComponent(g)+'" value="'+defVal+'" min="1" max="'+groups[g]+'"></div>';
+      html += '<div class="strat-manual-row"><label>'+g+' (N='+groups[g]+')</label><input type="number" id="man-'+encodeURIComponent(g)+'" value="'+defVal+'" min="0" max="'+groups[g]+'"></div>';
     });
     html += '</div>';
     ui.innerHTML = html;
@@ -1285,7 +1352,7 @@ function doStratified() {
   if (!col) { setAlert('st','err','Select a strata column.'); return; }
   var n = parseInt(document.getElementById('st-n').value);
   var method = document.getElementById('st-method').value;
-  var seed = document.getElementById('st-seed').value;
+  var seed = document.getElementById('st-seed').value.trim();
   var N = d.length;
   if (isNaN(n) || n < 1) { setAlert('st','err','Sample size must be at least 1.'); return; }
   var rng = mkRng(seed !== '' ? seed : null);
@@ -1296,51 +1363,57 @@ function doStratified() {
   var gKeys = Object.keys(groups).sort();
   var H = gKeys.length;
 
-  // Compute allocations guaranteeing exact sum = n using largest-remainder method
+  // FIX 7: Safeguard — warn if n < H
+  var alerts = [];
+  if (n < H) {
+    alerts.push({ type: 'warn', msg: 'Sample size (n='+n+') is smaller than the number of strata (H='+H+'). Some strata may receive 0 participants.' });
+  }
+
+  // FIX 3: Compute quotas — NO forced minimum, proper largest-remainder
   var alloc = {};
   if (method === 'manual') {
     gKeys.forEach(function(g) {
       var el = document.getElementById('man-' + encodeURIComponent(g));
-      alloc[g] = el ? Math.max(1, Math.min(parseInt(el.value)||1, groups[g].length)) : 1;
+      // min=0 allowed; only clamp to stratum size
+      alloc[g] = el ? Math.max(0, Math.min(parseInt(el.value)||0, groups[g].length)) : 0;
     });
   } else {
-    // Compute exact quotas then largest-remainder adjust
+    // Step 1: compute floor quotas (NO Math.max(1, ...))
     var quotas = {};
     var floorSum = 0;
-    var remainders = [];
     gKeys.forEach(function(g) {
       var Nh = groups[g].length;
       var quota = method === 'proportional' ? (n * Nh / N) : (n / H);
       var fl = Math.floor(quota);
-      fl = Math.max(1, fl);
-      fl = Math.min(fl, Nh);
+      fl = Math.min(fl, Nh); // cannot exceed stratum size
       quotas[g] = { floor: fl, remainder: quota - Math.floor(quota), Nh: Nh };
       floorSum += fl;
     });
+
+    // Step 2: largest-remainder method — distribute residuals
     var remaining = n - floorSum;
-    // Sort by remainder descending to distribute leftovers
     var sorted = gKeys.slice().sort(function(a,b){ return quotas[b].remainder - quotas[a].remainder; });
-    var bump = {};
+    var bumps = {};
     for (var i = 0; i < sorted.length && remaining > 0; i++) {
       var g = sorted[i];
       if (quotas[g].floor < quotas[g].Nh) {
-        bump[g] = true;
+        bumps[g] = 1;
         remaining--;
       }
     }
-    // If still need to add (floors hit min=1 edge), just add round-robin
+    // Edge: if still remaining (all strata at max), assign round-robin
     var ri = 0;
-    while (remaining > 0) {
+    while (remaining > 0 && ri < gKeys.length * 100) {
       var g = gKeys[ri % gKeys.length];
-      if ((quotas[g].floor + (bump[g]?1:0)) < quotas[g].Nh) {
-        bump[g] = (bump[g] || 0) + 1;
+      var cur = quotas[g].floor + (bumps[g] || 0);
+      if (cur < quotas[g].Nh) {
+        bumps[g] = (bumps[g] || 0) + 1;
         remaining--;
       }
       ri++;
-      if (ri > gKeys.length * 1000) break;
     }
     gKeys.forEach(function(g) {
-      alloc[g] = quotas[g].floor + (bump[g] ? (typeof bump[g]==='number' ? bump[g] : 1) : 0);
+      alloc[g] = quotas[g].floor + (bumps[g] || 0);
       alloc[g] = Math.min(alloc[g], groups[g].length);
     });
   }
@@ -1350,30 +1423,89 @@ function doStratified() {
   gKeys.forEach(function(g) {
     var Nh = groups[g].length;
     var nh = alloc[g];
-    var picked = fishYates(Nh, nh, rng);
-    picked.forEach(function(p) { selected.push(groups[g][p]); });
-    allocRows += '<tr><td>'+g+'</td><td>'+Nh.toLocaleString()+'</td><td>'+nh+'</td><td>'+(nh/Nh*100).toFixed(1)+'%</td></tr>';
+    if (nh > 0) {
+      var picked = fishYates(Nh, nh, rng);
+      picked.forEach(function(p) { selected.push(groups[g][p]); });
+    }
+    allocRows += '<tr><td>'+escH(g)+'</td><td>'+Nh.toLocaleString()+'</td><td>'+nh+'</td><td>'+(nh/Nh*100).toFixed(1)+'%</td></tr>';
   });
 
   S.st.selected = selected;
   document.getElementById('st-alloc').innerHTML = '<div class="strat-alloc"><table><thead><tr><th>Stratum</th><th>Nₕ</th><th>nₕ selected</th><th>Rate</th></tr></thead><tbody>'+allocRows+'</tbody></table></div>';
   renderTable('st', selected, 'selected');
-  document.getElementById('st-summary').innerHTML = '<div class="summary"><b>'+selected.length.toLocaleString()+'</b> selected across <b>'+H+'</b> strata using <b>'+method+'</b> allocation from <b>'+N.toLocaleString()+'</b> participants.</div>';
-  setAlert('st','ok','Stratified sample selected — exactly '+selected.length+' participants.');
+
+  var rngLabel = seed !== '' ? 'Seeded LCG (seed='+seed+')' : 'CSPRNG';
+  document.getElementById('st-summary').innerHTML = '<div class="summary"><b>'+selected.length.toLocaleString()+'</b> selected across <b>'+H+'</b> strata using <b>'+escH(method)+'</b> allocation (largest-remainder) from <b>'+N.toLocaleString()+'</b> participants. RNG: '+rngLabel+'.</div>';
+
+  alerts.push({ type: 'ok', msg: 'Stratified sample selected — exactly '+selected.length+' participants.' });
+  setMultiAlert('st', alerts);
 }
 
-// ─── EXPERIMENTAL ────────────────────────────────────────────────────────────
+// ─── FIX 4 & 5: EXPERIMENTAL RANDOMIZATION ───────────────────────────────────
+function validateBlockSize() {
+  var arms = parseInt(document.getElementById('ex-arms').value) || 2;
+  var bs = parseInt(document.getElementById('ex-block-size').value) || 0;
+  var hint = document.getElementById('ex-block-hint');
+  if (!hint) return;
+  if (bs > 0 && bs % arms === 0) {
+    hint.className = 'block-hint valid';
+    hint.textContent = '✓ Valid — ' + (bs / arms) + ' participant(s) per arm per block';
+  } else if (bs > 0) {
+    hint.className = 'block-hint invalid';
+    hint.textContent = '✕ Must be multiple of ' + arms + '. Try: ' + (Math.round(bs / arms) * arms || arms);
+  } else {
+    hint.className = 'block-hint';
+    hint.textContent = '';
+  }
+}
+
+function validateStratBlockSize() {
+  var arms = parseInt(document.getElementById('ex-arms').value) || 2;
+  var bs = parseInt(document.getElementById('ex-strat-block-size').value) || 0;
+  var hint = document.getElementById('ex-strat-block-hint');
+  if (!hint) return;
+  if (bs > 0 && bs % arms === 0) {
+    hint.className = 'block-hint valid';
+    hint.textContent = '✓ Valid — ' + (bs / arms) + ' participant(s) per arm per block';
+  } else if (bs > 0) {
+    hint.className = 'block-hint invalid';
+    hint.textContent = '✕ Must be multiple of ' + arms + '. Try: ' + (Math.round(bs / arms) * arms || arms);
+  } else {
+    hint.className = 'block-hint';
+    hint.textContent = '';
+  }
+}
+
 function updateExpUI() {
   var method = document.getElementById('ex-method').value;
   var hints = {
-    simple: 'P(arm = k) = 1/K for each participant independently.\nMay produce unequal groups.',
-    complete: 'Exactly ⌊N/K⌋ units per arm, remainder assigned round-robin.\nGlobally shuffled — guarantees balance.',
-    block: 'Permuted blocks of size b. Balance guaranteed within every b participants.\nIdeal for sequential enrollment.',
-    stratified: 'Complete randomization applied independently within each stratum.\nControls for baseline covariates.'
+    simple:     'P(arm = k) = 1/K for each participant independently.\nMay produce unequal group sizes.',
+    complete:   'Exactly ⌊N/K⌋ units per arm, remainder assigned round-robin.\nGlobally shuffled — guarantees balance.',
+    block:      'Permuted blocks of size b (must be multiple of K arms).\nBalance guaranteed at every block boundary.\nIdeal for sequential enrollment.',
+    stratified: 'Complete or block randomization applied independently\nwithin each stratum (gold standard in RCTs).\nControls for baseline covariates.'
   };
   document.getElementById('ex-formula').textContent = hints[method] || '';
   document.getElementById('ex-block-ui').style.display = method === 'block' ? 'block' : 'none';
   document.getElementById('ex-strat-ui').style.display = method === 'stratified' ? 'block' : 'none';
+  if (method === 'block') validateBlockSize();
+}
+
+// FIX 5: stratified inner method toggle
+document.addEventListener('DOMContentLoaded', function() {
+  var innerSel = document.getElementById('ex-strat-inner');
+  if (innerSel) {
+    innerSel.addEventListener('change', function() {
+      var blockUI = document.getElementById('ex-strat-block-ui');
+      if (blockUI) blockUI.style.display = innerSel.value === 'block' ? 'block' : 'none';
+      validateStratBlockSize();
+    });
+  }
+});
+
+function onArmsChange() {
+  renderArmNames();
+  validateBlockSize();
+  validateStratBlockSize();
 }
 
 function renderArmNames() {
@@ -1402,12 +1534,16 @@ function updateExpStratCols() {
   S.ex.headers.forEach(function(h){ var o = document.createElement('option'); o.value=h; o.textContent=h; sel.appendChild(o); });
 }
 
-// Arm color palette
-var ARM_COLORS = ['#4f8ef7','#34d399','#fbbf24','#a78bfa','#2dd4bf','#f87171','#fb923c','#ec4899'];
-var ARM_COLORS_LIGHT = ['#1d4ed8','#059669','#d97706','#7c3aed','#0d9488','#dc2626','#c2410c','#be185d'];
-
-function getArmColor(idx) {
-  return ARM_COLORS[idx % ARM_COLORS.length];
+// FIX 5: Block randomization within a set of indices
+function blockRandomize(count, arms, names, blockSize, rng) {
+  var result = [];
+  while (result.length < count) {
+    var block = [];
+    for (var i = 0; i < blockSize; i++) block.push(names[i % arms]);
+    block = shuffle(block, rng);
+    result = result.concat(block);
+  }
+  return result.slice(0, count);
 }
 
 function doExperimental() {
@@ -1416,38 +1552,56 @@ function doExperimental() {
   var method = document.getElementById('ex-method').value;
   var arms = parseInt(document.getElementById('ex-arms').value) || 2;
   var names = getArmNames();
-  var seed = document.getElementById('ex-seed').value;
+  var seed = document.getElementById('ex-seed').value.trim();
   var rng = mkRng(seed !== '' ? seed : null);
   var assignment = new Array(N);
 
   if (method === 'simple') {
     for (var i = 0; i < N; i++) assignment[i] = names[Math.floor(rng() * arms)];
+
   } else if (method === 'complete') {
     var base = [];
     for (var i = 0; i < N; i++) base.push(names[i % arms]);
     base = shuffle(base, rng);
     assignment = base;
+
   } else if (method === 'block') {
-    var bs = arms * Math.max(1, Math.round((parseInt(document.getElementById('ex-block-size').value)||4) / arms));
-    var result = [];
-    while (result.length < N) {
-      var block = [];
-      for (var i = 0; i < bs; i++) block.push(names[i % arms]);
-      block = shuffle(block, rng);
-      result = result.concat(block);
+    // FIX 4: Strict block size validation with hard stop
+    var bs = parseInt(document.getElementById('ex-block-size').value) || 0;
+    if (bs <= 0 || bs % arms !== 0) {
+      setAlert('ex','err','❌ BLOCK RANDOMIZATION STOPPED: Block size (' + bs + ') must be a positive multiple of the number of arms (' + arms + '). Valid examples: ' + arms + ', ' + (arms*2) + ', ' + (arms*3) + ', etc.');
+      return;
     }
-    assignment = result.slice(0, N);
+    assignment = blockRandomize(N, arms, names, bs, rng);
+
   } else if (method === 'stratified') {
     var scol = document.getElementById('ex-strat-col').value;
     if (!scol) { setAlert('ex','err','Select a strata column first.'); return; }
+    var innerMethod = document.getElementById('ex-strat-inner').value;
+    var stratBs = 0;
+    if (innerMethod === 'block') {
+      stratBs = parseInt(document.getElementById('ex-strat-block-size').value) || 0;
+      // FIX 4: Validate strata block size with hard stop
+      if (stratBs <= 0 || stratBs % arms !== 0) {
+        setAlert('ex','err','❌ STRATIFIED BLOCK RANDOMIZATION STOPPED: Block size (' + stratBs + ') must be a positive multiple of the number of arms (' + arms + '). Valid examples: ' + arms + ', ' + (arms*2) + ', ' + (arms*3) + ', etc.');
+        return;
+      }
+    }
     var sgroups = {};
     d.forEach(function(r, i) { var v = r[scol] || '(blank)'; if (!sgroups[v]) sgroups[v]=[]; sgroups[v].push(i); });
+    // FIX 5: Apply block or complete within each stratum
     Object.keys(sgroups).forEach(function(g) {
       var idxs = sgroups[g];
-      var base = [];
-      for (var i = 0; i < idxs.length; i++) base.push(names[i % arms]);
-      base = shuffle(base, rng);
-      idxs.forEach(function(idx, pos) { assignment[idx] = base[pos]; });
+      var assigned;
+      if (innerMethod === 'block') {
+        assigned = blockRandomize(idxs.length, arms, names, stratBs, rng);
+      } else {
+        // complete within stratum
+        var base = [];
+        for (var i = 0; i < idxs.length; i++) base.push(names[i % arms]);
+        assigned = shuffle(base, rng);
+      }
+      idxs.forEach(function(idx, pos) { assignment[idx] = assigned[pos]; });
     });
   }
 
@@ -1458,10 +1612,12 @@ function doExperimental() {
   assignment.forEach(function(a){ if(a) counts[a]=(counts[a]||0)+1; });
   var rows = '';
   names.forEach(function(nm, idx) {
-    rows += '<tr><td><span class="badge arm-color-'+idx+'">'+escH(nm)+'</span></td><td>'+counts[nm].toLocaleString()+'</td><td>'+(counts[nm]/N*100).toFixed(1)+'%</td></tr>';
+    rows += '<tr><td><span class="badge arm-color-'+idx+'" style="border:1px solid">'+escH(nm)+'</span></td><td>'+counts[nm].toLocaleString()+'</td><td>'+(counts[nm]/N*100).toFixed(1)+'%</td></tr>';
   });
   document.getElementById('ex-summary').innerHTML = '<div class="strat-alloc"><table><thead><tr><th>Arm</th><th>N assigned</th><th>%</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-  setAlert('ex','ok','Randomization complete — '+N.toLocaleString()+' participants across '+arms+' arms.');
+
+  var rngLabel = seed !== '' ? 'Seeded LCG (seed='+seed+')' : 'CSPRNG';
+  setAlert('ex','ok','Randomization complete — '+N.toLocaleString()+' participants across '+arms+' arms. RNG: '+rngLabel+'.');
 }
 
 // ─── RENDER TABLE ────────────────────────────────────────────────────────────
@@ -1473,7 +1629,6 @@ function renderTable(key, selected, mode) {
   h.forEach(function(hh){ html += '<th>'+escH(hh)+'</th>'; });
   html += '<th>'+(isExp ? 'Assignment' : 'Selected')+'</th></tr></thead><tbody>';
 
-  // Build arm name→index map for coloring
   var armIdx = {};
   if (isExp) {
     var names = getArmNames();
@@ -1488,7 +1643,7 @@ function renderTable(key, selected, mode) {
     if (isExp) {
       var armName = S.ex.assigned[i] || '—';
       var ci = armIdx[armName] !== undefined ? armIdx[armName] : 0;
-      html += '<td><span class="badge arm-color-'+ci+'">'+escH(armName)+'</span></td>';
+      html += '<td><span class="badge arm-color-'+ci+'" style="border:1px solid">'+escH(armName)+'</span></td>';
     } else {
       html += '<td>'+(isSel ? '<span class="badge badge-yes">✓ Yes</span>' : '<span class="badge badge-no">—</span>')+'</td>';
     }
